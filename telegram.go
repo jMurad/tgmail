@@ -40,7 +40,7 @@ type TeleBot struct {
 	MsgStore MessageStore
 }
 
-func (tb *TeleBot) TBInit() {
+func (tb *TeleBot) Init() {
 	var err error
 	tb.ChatID, err = strconv.ParseInt(os.Getenv("TELEG_CHATID"), 10, 64)
 	if err != nil {

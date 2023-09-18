@@ -18,7 +18,7 @@ func main() {
 	var telebot TeleBot
 	var rec Receiver
 
-	telebot.TBInit()
+	telebot.Init()
 	rec.Init()
 
 	envch := make(chan Envelope)
