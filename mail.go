@@ -4,6 +4,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -15,20 +16,36 @@ import (
 )
 
 type Envelope struct {
-	date        time.Time
-	to          []string
-	from        []string
-	subject     string
-	message     string
-	attachments []io.Reader
+	date      time.Time
+	to        []string
+	from      []string
+	subject   string
+	message   string
+	filenames []string
 }
 
-func mailReceiver() []Envelope {
+type Receiver struct {
+	login    string
+	passwd   string
+	server   string
+	Folder   string
+	localDir string
+}
+
+func (rec *Receiver) Init() {
+	rec.login = os.Getenv("EMAIL_ADDRS")
+	rec.passwd = os.Getenv("EMAIL_PASSW")
+	rec.server = os.Getenv("EMAIL_SERVR")
+	rec.Folder = os.Getenv("EMAIL_FOLDR")
+	rec.localDir = os.Getenv("FILEDIR")
+}
+
+func (rec *Receiver) MailReceiver() []Envelope {
 	// log.SetOutput(io.Discard)
 	log.Println("Connecting to server...")
 
 	// Connect to server
-	c, err := client.DialTLS("imap.yandex.com:993", nil)
+	c, err := client.DialTLS(rec.server, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -38,13 +55,13 @@ func mailReceiver() []Envelope {
 	defer c.Logout()
 
 	// Login
-	if err := c.Login("sh0ma04@yandex.ru", "htglhbaigtvybtcn"); err != nil {
+	if err := c.Login(rec.login, rec.passwd); err != nil {
 		log.Fatal(err)
 	}
 	log.Println("Logged in")
 
 	// Select a mailbox
-	if _, err := c.Select("INBOX", false); err != nil {
+	if _, err := c.Select(rec.Folder, false); err != nil {
 		log.Fatal(err)
 	}
 
@@ -96,23 +113,19 @@ func mailReceiver() []Envelope {
 		// Print some info about the message
 		header := mr.Header
 		if date, err := header.Date(); err == nil {
-			// log.Println("Date:", date)
 			envlp.date = date
 		}
 		if from, err := header.AddressList("From"); err == nil {
-			// log.Println("From:", from)
 			for _, fr := range from {
 				envlp.from = append(envlp.from, fr.Name+" | "+fr.Address)
 			}
 		}
 		if to, err := header.AddressList("To"); err == nil {
-			// log.Println("To:", to)
 			for _, t := range to {
 				envlp.to = append(envlp.to, t.Name+" | "+t.Address)
 			}
 		}
 		if subject, err := header.Subject(); err == nil {
-			// log.Println("Subject:", subject)
 			envlp.subject = subject
 		}
 
@@ -128,7 +141,6 @@ func mailReceiver() []Envelope {
 			case *mail.InlineHeader:
 				// This is the message's text (can be plain-text or HTML)
 				b, _ := io.ReadAll(p.Body)
-				// log.Printf("Got text: %v\n%v\n", p.Header.Get("Content-Type"), p.Header.Get("Content-Transfer-Encoding"))
 				if strings.Contains(p.Header.Get("Content-Type"), "html") {
 					node, err := html.Parse(strings.NewReader(string(b)))
 					if err != nil {
@@ -144,7 +156,13 @@ func mailReceiver() []Envelope {
 				filename, _ := h.Filename()
 				log.Printf("Got attachment: %v\n", filename)
 				// Create file with attachment name
-				file, err := os.Create(filename)
+				tempDir := strconv.FormatInt(time.Now().UnixMilli(), 10)
+				os.MkdirAll(rec.localDir+tempDir, os.ModePerm)
+				if err != nil {
+					log.Panic(err)
+				}
+				path := rec.localDir + tempDir + "/" + filename
+				file, err := os.Create(path)
 				if err != nil {
 					log.Fatal(err)
 				}
@@ -154,7 +172,7 @@ func mailReceiver() []Envelope {
 					log.Fatal(err)
 				}
 				file.Close()
-				envlp.attachments = append(envlp.attachments, p.Body)
+				envlp.filenames = append(envlp.filenames, path)
 			}
 		}
 		envlps = append(envlps, envlp)

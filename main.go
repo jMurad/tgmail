@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"os"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -16,25 +15,23 @@ func init() {
 }
 
 func main() {
-	dat, _ := os.ReadFile(".mtext")
-	tt = string(dat)
-	// log.Println(utf8.ValidString(tt))
-
 	var telebot TeleBot
+	var rec Receiver
 
 	telebot.TBInit()
+	rec.Init()
 
 	envch := make(chan Envelope)
 
-	go func(ec chan Envelope) {
+	go func(ec chan Envelope, rec *Receiver) {
 		ticker := time.NewTicker(time.Minute)
 		for ; true; <-ticker.C {
-			envelopes := mailReceiver()
+			envelopes := rec.MailReceiver()
 			for _, e := range envelopes {
 				ec <- e
 			}
 		}
-	}(envch)
+	}(envch, &rec)
 
 	telebot.RunBot(envch)
 }

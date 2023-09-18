@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -40,15 +41,13 @@ type TeleBot struct {
 }
 
 func (tb *TeleBot) TBInit() {
-	//Создаем бота
-	token := os.Getenv("TELEG_TOKEN")
-
 	var err error
-	tb.ChatID, err = strconv.ParseInt(os.Getenv("TELEG_CHAID"), 10, 64)
+	tb.ChatID, err = strconv.ParseInt(os.Getenv("TELEG_CHATID"), 10, 64)
 	if err != nil {
 		panic(err)
 	}
 
+	token := os.Getenv("TELEG_TOKEN")
 	tb.Bot, err = tgb.NewBotAPI(token)
 	if err != nil {
 		panic(err)
@@ -69,7 +68,7 @@ func (tb *TeleBot) TBInit() {
 	tb.MsgStore.Messages = make(map[int]string)
 }
 
-func (tb *TeleBot) editMsg(id int64, mid, index int, cmd string) {
+func (tb *TeleBot) editMsg(mid, index int, cmd string) {
 	text, kb := paginator(cmd, tb.MsgStore.get(mid), index)
 
 	msg := tgb.NewEditMessageText(tb.ChatID, mid, text)
@@ -81,22 +80,40 @@ func (tb *TeleBot) editMsg(id int64, mid, index int, cmd string) {
 	}
 }
 
-func (tb *TeleBot) sendMsg(id int64, text string) {
-	fullText := text
-	length := lensafe(text)
-	if length > lessText {
-		text = slicer(text, 0, lessText)
+func (tb *TeleBot) sendMsg(env Envelope) {
+	text := beautify(env.message, env.subject, env.from)
+
+	msg := tgb.NewMessage(tb.ChatID, text)
+
+	if lensafe(text) > lessText {
+		msg.Text = slicer(text, 0, lessText)
+		kb := inlineKb(0, 0)
+		kb.InlineKeyboard = append(kb.InlineKeyboard, fileKb(env.filenames).InlineKeyboard...)
+		msg.ReplyMarkup = kb
+	} else if len(env.filenames) > 0 {
+		msg.ReplyMarkup = fileKb(env.filenames)
 	}
 
-	msg := tgb.NewMessage(id, text)
-	msg.ReplyMarkup = inlineKb(0, 0)
 	msg.ParseMode = tgb.ModeHTML
 
 	respMsg, err := tb.Bot.Send(msg)
 	if err != nil {
 		log.Panic(err)
 	}
-	tb.MsgStore.add(respMsg.MessageID, fullText)
+	tb.MsgStore.add(respMsg.MessageID, text)
+}
+
+func (tb *TeleBot) sendFile(id int, filename string) {
+	log.Println("Name:", filename)
+	doc := tgb.NewDocument(tb.ChatID, tgb.FilePath(filename))
+	doc.Caption = strings.Split(filename, "/")[len(strings.Split(filename, "/"))-1]
+	doc.ReplyToMessageID = id
+	msg, err := tb.Bot.Send(doc)
+	log.Println("MesID:", msg.MessageID)
+
+	if err != nil {
+		log.Panic(err)
+	}
 }
 
 func (tb *TeleBot) RunBot(envelopes chan Envelope) {
@@ -104,20 +121,25 @@ func (tb *TeleBot) RunBot(envelopes chan Envelope) {
 		select {
 		case update := <-tb.Updates:
 			if update.Message != nil {
-				if update.Message.Text == "help" {
-					tb.sendMsg(tb.ChatID, tt)
-				}
+				fmt.Println(">", update.Message.Text)
+
 			} else if update.CallbackQuery != nil {
 				callback := tgb.NewCallback(update.CallbackQuery.ID, update.CallbackQuery.Data)
 				if _, err := tb.Bot.Request(callback); err != nil {
 					panic(err)
 				}
-				data := strings.Split(update.CallbackQuery.Data, ".")
-				index, _ := strconv.Atoi(data[0])
-				tb.editMsg(tb.ChatID, update.CallbackQuery.Message.MessageID, index, data[1])
+				if strings.Contains(update.CallbackQuery.Data, ":pag:") {
+					data := strings.Split(update.CallbackQuery.Data, ":pag:")
+					index, _ := strconv.Atoi(data[0])
+					tb.editMsg(update.CallbackQuery.Message.MessageID, index, data[1])
+				} else if strings.Contains(update.CallbackQuery.Data, "file:") {
+					path := strings.Split(update.CallbackQuery.Data, "file:")[1]
+					tb.sendFile(update.CallbackQuery.Message.MessageID, path)
+				}
+
 			}
 		case envelope := <-envelopes:
-			tb.sendMsg(tb.ChatID, envelope.message)
+			tb.sendMsg(envelope)
 		}
 	}
 }
