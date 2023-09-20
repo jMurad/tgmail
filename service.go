@@ -58,6 +58,7 @@ func (s *Service) Run() {
 	}(s.EnvelopeCh, &s.Mail)
 
 	s.RunBot(s.EnvelopeCh)
+	s.RunServer()
 }
 
 func (s *Service) RunServer() {
