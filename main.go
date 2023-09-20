@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"time"
 
 	"github.com/joho/godotenv"
 )
@@ -15,23 +14,8 @@ func init() {
 }
 
 func main() {
-	var telebot TeleBot
-	var rec Receiver
+	srv := Service{}
 
-	telebot.Init()
-	rec.Init()
-
-	envch := make(chan Envelope)
-
-	go func(ec chan Envelope, rec *Receiver) {
-		ticker := time.NewTicker(time.Minute)
-		for ; true; <-ticker.C {
-			envelopes := rec.MailReceiver()
-			for _, e := range envelopes {
-				ec <- e
-			}
-		}
-	}(envch, &rec)
-
-	telebot.RunBot(envch)
+	srv.Init()
+	srv.Run()
 }

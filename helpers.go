@@ -12,6 +12,36 @@ const sizeMsgStore = 100
 const sizeText = 3000
 const lessText = 500
 
+type MessageStore struct {
+	Messages map[int]string
+	Queue    [sizeMsgStore]int
+	index    int
+}
+
+func (m *MessageStore) add(id int, text string) {
+	m.Messages[id] = text
+	if m.index >= sizeMsgStore {
+		delete(m.Messages, m.Queue[0])
+		for i := 1; i < sizeMsgStore; i++ {
+			m.Queue[i-1] = m.Queue[i]
+		}
+		m.index--
+	}
+	m.Queue[m.index] = id
+	m.index++
+}
+
+func (m *MessageStore) get(id int) (res string, err error) {
+	var ok bool
+	res, ok = m.Messages[id]
+	if ok {
+		err = nil
+	} else {
+		err = fmt.Errorf("id: %d not found", id)
+	}
+	return
+}
+
 func slicer(s string, begin, end int) string {
 	return string([]rune(s)[begin:end])
 }
@@ -63,6 +93,17 @@ func inlineKb(i, ind int) (kb tgb.InlineKeyboardMarkup) {
 			),
 		)
 	}
+	return
+}
+
+func webAppKb(url string) (kb tgb.InlineKeyboardMarkup) {
+	wa := new(tgb.WebAppInfo)
+	wa.URL = url
+	kb = tgb.NewInlineKeyboardMarkup(
+		tgb.NewInlineKeyboardRow(
+			tgb.NewInlineKeyboardButtonWebApp("Посмотреть", *wa),
+		),
+	)
 	return
 }
 

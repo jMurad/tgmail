@@ -8,11 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aarzilli/sandblast"
 	"github.com/emersion/go-imap"
 	"github.com/emersion/go-imap/client"
 	"github.com/emersion/go-message/mail"
-	"golang.org/x/net/html"
 )
 
 type Envelope struct {
@@ -22,34 +20,43 @@ type Envelope struct {
 	subject   string
 	message   string
 	filenames []string
+	htmlType  bool
 }
 
-type Receiver struct {
+type Mail struct {
 	login    string
 	passwd   string
 	server   string
 	Folder   string
 	localDir string
+	debug    bool
 }
 
-func (rec *Receiver) Init() {
+func (rec *Mail) Init() {
 	rec.login = os.Getenv("EMAIL_ADDRS")
 	rec.passwd = os.Getenv("EMAIL_PASSW")
 	rec.server = os.Getenv("EMAIL_SERVR")
 	rec.Folder = os.Getenv("EMAIL_FOLDR")
 	rec.localDir = os.Getenv("FILEDIR")
+	if os.Getenv("EMAIL_DEBUG") == "true" {
+		rec.debug = true
+	} else {
+		rec.debug = false
+	}
 }
 
-func (rec *Receiver) MailReceiver() []Envelope {
-	// log.SetOutput(io.Discard)
-	log.Println("Connecting to server...")
+func (rec *Mail) Receiver() []Envelope {
+	if !rec.debug {
+		log.SetOutput(io.Discard)
+	}
+	println(rec.debug, "Connecting to server...")
 
 	// Connect to server
 	c, err := client.DialTLS(rec.server, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Println("Connected")
+	println(rec.debug, "Connected")
 
 	// Don't forget to logout
 	defer c.Logout()
@@ -58,7 +65,7 @@ func (rec *Receiver) MailReceiver() []Envelope {
 	if err := c.Login(rec.login, rec.passwd); err != nil {
 		log.Fatal(err)
 	}
-	log.Println("Logged in")
+	println(rec.debug, "Logged in")
 
 	// Select a mailbox
 	if _, err := c.Select(rec.Folder, false); err != nil {
@@ -73,9 +80,9 @@ func (rec *Receiver) MailReceiver() []Envelope {
 		log.Fatal(err)
 	}
 
-	log.Println("IDs found:", ids)
+	println(rec.debug, "IDs found:", ids)
 	if len(ids) == 0 {
-		log.Println("No Ids")
+		println(rec.debug, "No Ids")
 		return []Envelope{}
 	}
 
@@ -142,14 +149,11 @@ func (rec *Receiver) MailReceiver() []Envelope {
 				// This is the message's text (can be plain-text or HTML)
 				b, _ := io.ReadAll(p.Body)
 				if strings.Contains(p.Header.Get("Content-Type"), "html") {
-					node, err := html.Parse(strings.NewReader(string(b)))
-					if err != nil {
-						log.Fatal("Parsing error: ", err)
-					}
-					_, envlp.message, _ = sandblast.Extract(node, sandblast.KeepLinks)
+					envlp.htmlType = true
 				} else {
-					envlp.message = string(b)
+					envlp.htmlType = false
 				}
+				envlp.message = string(b)
 
 			case *mail.AttachmentHeader:
 				// This is an attachment
@@ -182,7 +186,7 @@ func (rec *Receiver) MailReceiver() []Envelope {
 		log.Fatal(err)
 	}
 
-	log.Println("Done!")
+	println(rec.debug, "Done!")
 
 	return envlps
 }
