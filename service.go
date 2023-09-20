@@ -56,7 +56,7 @@ func (s *Service) Run() {
 			}
 		}
 	}(s.EnvelopeCh, &s.Mail)
-	s.RunServer()
+	go s.RunServer()
 	s.RunBot(s.EnvelopeCh)
 
 }
@@ -79,7 +79,7 @@ func (s *Service) RunServer() {
 		WriteTimeout: 10 * time.Second,
 		Addr:         s.addr,
 	}
-	log.Printf(s.addr, s.cert, s.key)
+	log.Println(s.addr, s.cert, s.key)
 	err := srv.ListenAndServeTLS(s.cert, s.key)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
