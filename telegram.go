@@ -65,6 +65,7 @@ func (tb *TeleBot) editMsg(mid, index int, cmd string) {
 
 func (tb *TeleBot) sendMsg(env Envelope) {
 	id := rand.Intn(10000)
+	tb.MsgStore.add(id, env.message)
 	var text string
 	if env.htmlType {
 		node, err := html.Parse(strings.NewReader(env.message))
@@ -81,7 +82,7 @@ func (tb *TeleBot) sendMsg(env Envelope) {
 	if lensafe(text) > lessText {
 		msg.Text = slicer(text, 0, lessText)
 		// kb := inlineKb(0, 0)
-		kb := webAppKb(fmt.Sprintf("https://88.210.9.244/%d", id))
+		kb := webAppKb(fmt.Sprintf("https://88.210.9.244:8081/%d", id))
 		kb.InlineKeyboard = append(kb.InlineKeyboard, fileKb(env.filenames).InlineKeyboard...)
 		// kb.InlineKeyboard = append(kb.InlineKeyboard, kb2.InlineKeyboard...)
 		msg.ReplyMarkup = kb
@@ -95,7 +96,7 @@ func (tb *TeleBot) sendMsg(env Envelope) {
 	if err != nil {
 		log.Panic(err)
 	}
-	tb.MsgStore.add(id, env.message)
+
 }
 
 func (tb *TeleBot) sendFile(id int, filename string) {
