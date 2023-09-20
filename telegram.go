@@ -39,7 +39,7 @@ func (tb *TeleBot) Init() {
 		tb.Debug = true
 	}
 
-	println(tb.Bot.Debug, "Authorized on account", tb.Bot.Self.UserName)
+	log.Println("Authorized on account", tb.Bot.Self.UserName)
 
 	u := tgb.NewUpdate(0)
 	u.Timeout = 60

@@ -49,14 +49,14 @@ func (rec *Mail) Receiver() []Envelope {
 	if !rec.debug {
 		log.SetOutput(io.Discard)
 	}
-	println(rec.debug, "Connecting to server...")
+	log.Println("Connecting to server...")
 
 	// Connect to server
 	c, err := client.DialTLS(rec.server, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
-	println(rec.debug, "Connected")
+	log.Println("Connected")
 
 	// Don't forget to logout
 	defer c.Logout()
@@ -65,7 +65,7 @@ func (rec *Mail) Receiver() []Envelope {
 	if err := c.Login(rec.login, rec.passwd); err != nil {
 		log.Fatal(err)
 	}
-	println(rec.debug, "Logged in")
+	log.Println("Logged in")
 
 	// Select a mailbox
 	if _, err := c.Select(rec.Folder, false); err != nil {
@@ -80,9 +80,9 @@ func (rec *Mail) Receiver() []Envelope {
 		log.Fatal(err)
 	}
 
-	println(rec.debug, "IDs found:", ids)
+	log.Println("IDs found:", ids)
 	if len(ids) == 0 {
-		println(rec.debug, "No Ids")
+		log.Println("No Ids")
 		return []Envelope{}
 	}
 
@@ -186,7 +186,7 @@ func (rec *Mail) Receiver() []Envelope {
 		log.Fatal(err)
 	}
 
-	println(rec.debug, "Done!")
+	log.Println("Done!")
 
 	return envlps
 }

@@ -14,7 +14,7 @@ func init() {
 }
 
 func main() {
-	srv := Service{}
+	srv := new(Service)
 
 	srv.Init()
 	srv.Run()
