@@ -75,7 +75,7 @@ func (tb *TeleBot) sendMsg(env Envelope) {
 		_, text, _ = sandblast.Extract(node, sandblast.KeepLinks)
 		text = beautify(text, env.subject, env.from)
 	} else {
-		text = env.message
+		text = beautify(env.message, env.subject, env.from)
 	}
 	msg := tgb.NewMessage(tb.ChatID, text)
 
