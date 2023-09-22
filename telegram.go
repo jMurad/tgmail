@@ -66,21 +66,21 @@ func (tb *TeleBot) editMsg(mid, index int, cmd string) {
 func (tb *TeleBot) sendMsg(env Envelope) {
 	id := rand.Intn(10000)
 	tb.MsgStore.add(id, env.message)
-	var text string
 	if env.htmlType {
 		node, err := html.Parse(strings.NewReader(env.message))
 		if err != nil {
 			log.Fatal("Parsing error: ", err)
 		}
-		_, text, _ = sandblast.Extract(node, sandblast.KeepLinks)
-		text = beautify(text, env.subject, env.from)
+		_, env.message, _ = sandblast.Extract(node, sandblast.KeepLinks)
+		env.message = beautify(env.message, env.subject, env.from)
 	} else {
-		text = beautify(env.message, env.subject, env.from)
+		env.message = fmt.Sprintf("<html><head></head><body>%s</body></html>", env.message)
+		env.message = beautify(env.message, env.subject, env.from)
 	}
-	msg := tgb.NewMessage(tb.ChatID, text)
+	msg := tgb.NewMessage(tb.ChatID, env.message)
 
-	if lensafe(text) > lessText {
-		msg.Text = slicer(text, 0, lessText)
+	if lensafe(env.message) > lessText {
+		msg.Text = slicer(env.message, 0, lessText)
 		// kb := inlineKb(0, 0)
 		kb := webAppKb(fmt.Sprintf("https://88.210.9.244.sslip.io/%d", id))
 		kb.InlineKeyboard = append(kb.InlineKeyboard, fileKb(env.filenames).InlineKeyboard...)
