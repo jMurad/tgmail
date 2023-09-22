@@ -1,12 +1,15 @@
 package main
 
 import (
+	"crypto/tls"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"strconv"
 	"time"
+
+	"golang.org/x/crypto/acme/autocert"
 )
 
 type Service struct {
@@ -61,7 +64,7 @@ func (s *Service) Run() {
 
 }
 
-func (s *Service) RunServer() {
+func (s *Service) RunServer2() {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		id, err := strconv.Atoi(r.URL.Path[1:])
 		if err != nil {
@@ -84,4 +87,37 @@ func (s *Service) RunServer() {
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}
+}
+
+func (s *Service) RunServer() {
+	certManager := autocert.Manager{
+		Prompt:     autocert.AcceptTOS,
+		HostPolicy: autocert.HostWhitelist("88.210.9.244.sslip.io"), //Your domain here
+		Cache:      autocert.DirCache("certs"),                      //Folder for storing certificates
+	}
+
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		id, err := strconv.Atoi(r.URL.Path[1:])
+		if err != nil {
+			log.Panic(err)
+		}
+		html, err := s.MsgStore.get(id)
+		if err != nil {
+			log.Panic(err)
+		}
+		fmt.Fprint(w, html)
+	})
+
+	server := &http.Server{
+		Addr: ":https",
+		TLSConfig: &tls.Config{
+			GetCertificate: certManager.GetCertificate,
+			MinVersion:     tls.VersionTLS12, // improves cert reputation score at https://www.ssllabs.com/ssltest/
+		},
+	}
+
+	go http.ListenAndServe(":http", certManager.HTTPHandler(nil))
+
+	log.Fatal(server.ListenAndServeTLS("", "")) //Key and cert are coming from Let's Encrypt
+
 }
