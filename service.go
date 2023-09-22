@@ -108,7 +108,7 @@ func (s *Service) RunServer() {
 		fmt.Fprint(w, html)
 	})
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/hi", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, "Hello Murad")
 	})
 
