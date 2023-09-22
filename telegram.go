@@ -65,10 +65,11 @@ func (tb *TeleBot) editMsg(mid, index int, cmd string) {
 
 func (tb *TeleBot) sendMsg(env Envelope) {
 	id := rand.Intn(10000)
+	htmlText := ""
 	if !strings.Contains(env.message, "<html") {
-		env.message = fmt.Sprintf("<html><head></head><body>%s</body></html>", env.message)
+		htmlText = fmt.Sprintf("<html><head></head><body>%s</body></html>", env.message)
 	}
-	tb.MsgStore.add(id, env.message)
+	tb.MsgStore.add(id, htmlText)
 	if env.htmlType {
 		node, err := html.Parse(strings.NewReader(env.message))
 		if err != nil {
@@ -77,7 +78,6 @@ func (tb *TeleBot) sendMsg(env Envelope) {
 		_, env.message, _ = sandblast.Extract(node, sandblast.KeepLinks)
 		env.message = beautify(env.message, env.subject, env.from)
 	} else {
-		env.message = fmt.Sprintf("<html><head></head><body>%s</body></html>", env.message)
 		env.message = beautify(env.message, env.subject, env.from)
 	}
 	msg := tgb.NewMessage(tb.ChatID, env.message)
