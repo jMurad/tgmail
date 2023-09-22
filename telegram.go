@@ -65,6 +65,9 @@ func (tb *TeleBot) editMsg(mid, index int, cmd string) {
 
 func (tb *TeleBot) sendMsg(env Envelope) {
 	id := rand.Intn(10000)
+	if !strings.Contains(env.message, "<html") {
+		env.message = fmt.Sprintf("<html><head></head><body>%s</body></html>", env.message)
+	}
 	tb.MsgStore.add(id, env.message)
 	if env.htmlType {
 		node, err := html.Parse(strings.NewReader(env.message))
