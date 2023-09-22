@@ -71,8 +71,12 @@ func (tb *TeleBot) sendMsg(env Envelope) {
 		if err != nil {
 			log.Fatal("Parsing error: ", err)
 		}
-		_, env.message, _ = sandblast.Extract(node, sandblast.KeepLinks)
-		env.message = beautify(env.message, env.subject, env.from)
+		_, text, err := sandblast.Extract(node, sandblast.KeepLinks)
+		if err != nil {
+			env.message = beautify(env.message, env.subject, env.from)
+		} else {
+			env.message = beautify(text, env.subject, env.from)
+		}
 	} else {
 		env.message = beautify(env.message, env.subject, env.from)
 	}
