@@ -82,7 +82,7 @@ func (tb *TeleBot) sendMsg(env Envelope) {
 	if lensafe(text) > lessText {
 		msg.Text = slicer(text, 0, lessText)
 		// kb := inlineKb(0, 0)
-		kb := webAppKb(fmt.Sprintf("https://88.210.9.244:8081/%d", id))
+		kb := webAppKb(fmt.Sprintf("https://88.210.9.244.sslip.io/%d", id))
 		kb.InlineKeyboard = append(kb.InlineKeyboard, fileKb(env.filenames).InlineKeyboard...)
 		// kb.InlineKeyboard = append(kb.InlineKeyboard, kb2.InlineKeyboard...)
 		msg.ReplyMarkup = kb
