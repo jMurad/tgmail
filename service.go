@@ -99,7 +99,8 @@ func (s *Service) RunServer() {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		id, err := strconv.Atoi(r.URL.Path[1:])
 		if err != nil {
-			log.Panic(err)
+			log.Println(err)
+			return
 		}
 		html, err := s.MsgStore.get(id)
 		if err != nil {
