@@ -24,7 +24,6 @@ type Envelope struct {
 }
 
 type Mail struct {
-	client   *client.Client
 	login    string
 	passwd   string
 	server   string
@@ -44,27 +43,6 @@ func (rec *Mail) Init() {
 	} else {
 		rec.debug = false
 	}
-}
-
-func (rec *Mail) Login() {
-	log.Println("Connecting to server...")
-
-	var err error
-
-	// Connect to server
-	rec.client, err = client.DialTLS(rec.server, nil)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	log.Println("Connected")
-
-	// Login
-	if err = rec.client.Login(rec.login, rec.passwd); err != nil {
-		log.Fatal(err)
-	}
-
-	log.Println("Logged in")
 }
 
 func (rec *Mail) Receiver() []Envelope {
